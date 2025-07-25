@@ -22,7 +22,7 @@
 
 ## 疑难杂症
 #### 什么是教辅？&如何获取cookie？
-- 详见[原项目](https://github.com/chara0618/ewt360AGAA?tab=readme-ov-file#%E7%96%91%E9%9A%BE%E6%9D%82%E7%97%87)。
+- 详见[原项目](https://github.com/qzgeek/ewt360/tree/main#%E7%96%91%E9%9A%BE%E6%9D%82%E7%97%87)。
 
 ## 鸣谢
 - [ewt360](https://github.com/qzgeek/ewt360)：大部分代码及WEBUI。
