@@ -11,9 +11,11 @@
 
 ## 使用说明
 1. **启动工具**：运行`run.bat`(Windows)或`run.sh`(Linux)，等待片刻后浏览器应自动弹出WEBUI，此时**不要关闭原来的黑窗**，继续进行下面的操作。
-1. **获取Cookie**：手动抓包并根据指示填写`cookie`，所抓包请求URL中的域名应为web.ewt360.com，格式应保持HTTP请求头中`Cookies:`后的默认格式。
-2. **获取ReportId**：分别选择**已经完成的**试卷及课后习题,复制并填写网址上reportId的值（详见[如何获得](https://github.com/zhicheng233/GetEWTAnswers?tab=readme-ov-file#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8)）。
-3. **获取答题链接**：打开需要获取答案的试卷或课后习题，复制并填写整个网址。
+2. **获取Cookie**：手动抓包并根据指示填写`cookie`，所抓包请求URL中的域名应为web.ewt360.com，格式应保持HTTP请求头中`Cookies:`后的默认格式。
+3. **获取ReportId**：
+   - **自动（默认）**：确保自己的账号有**已经完成的**试卷及课后习题，然后勾选`自动获取reportId`，首次获取需要一定的时间。 
+   - **手动**：分别选择**已经完成的**试卷及课后习题,复制并填写网址上reportId的值（详见[如何获得](https://github.com/zhicheng233/GetEWTAnswers?tab=readme-ov-file#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8)）。
+4. **获取答题链接**：打开需要获取答案的试卷或课后习题，复制并填写整个网址。亦可直接拍摄并上传习题右上角的二维码。
 5. **运行工具**：按照工具的提示进行操作。
 
 ## 注意事项
@@ -27,3 +29,4 @@
 ## 鸣谢
 - [ewt360](https://github.com/qzgeek/ewt360)：大部分代码及WEBUI。
 - [GetEWTAnswers](https://github.com/zhicheng233/GetEWTAnswers)：答案获取的相关API。
+- [DeepSeek](https://www.deepseek.com/)：部分代码生成。
