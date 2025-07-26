@@ -38,7 +38,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.caption("EWT360AGAA 1.0.1")
+st.caption("EWT360AGAA 1.0.1-hotfix")
 st.title("EWT360AGAA")
 st.write("欢迎使用一网通教辅答案获取工具！")
 st.write("GUI By Streamlit & Code_S96 | Program By Qzgeek | Fork By 皆生函数")

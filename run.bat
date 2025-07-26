@@ -1,1 +1,1 @@
-pip install -r requirements.txt & streamlit run ./python/main.py --server.port 8080
+pip install -r requirements.txt & python -m streamlit run ./python/main.py

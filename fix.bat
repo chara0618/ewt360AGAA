@@ -1,0 +1,1 @@
+pip uninstall pyzbar -y && pip install pyzbar
