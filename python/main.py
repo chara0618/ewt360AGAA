@@ -9,15 +9,6 @@ st.set_page_config(
     page_icon="💯",  # 标签页图标，可以使用 Unicode 表情符号或图片路径
     layout="centered"  # 页面布局，可选 "wide" 或 "centered"
 )
-###
-#✨升学e网通 *GUI版！* 教辅 | 作业 答案查看脚本✨
-#--版本：Beta1.0.0
-#--作者：黔中极客 & Code_S96
-#--项目地址：https://github.com/qzgeek/ewt360
-#--许可证：https://www.gnu.org/licenses/gpl-3.0.html#license-text
-#--作者的话：
-#本脚本仅个人学习使用，禁止传播，误下请尽快删除！！
-###
 
 # def extract_cookies(json_text):
 #     # 将JSON字符串解析为Python字典
@@ -38,10 +29,10 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.caption("EWTwebver 1.0.0")
-st.title("EWTwebver")
+st.caption("EWT360AGAA 1.0.0")
+st.title("EWT360AGAA")
 st.write("欢迎使用一网通教辅答案获取工具！")
-st.write("GUI By Streamlit & Code_S96 | Program By Qzgeek")
+st.write("GUI By Streamlit & Code_S96 | Program By Qzgeek | Fork By falseblocks")
 cookie_area = st.text_area(label="在这里输入Cookies...")
 # upfile = st.file_uploader("在这里上传二维码照片...(限大小10M以内)", type=["jpg", "png", "gif"])
 paper_rid = st.text_area(label="已完成试卷的reportId...")
@@ -98,11 +89,13 @@ if submit_button:
         st.error("Cookies转换失败！请检查输入是否正确。")
         st.stop()
     #st.write("开始提取paperId,homeworkId,reportId,bizCode...")
-    paperId = re.search(r'paperId=([^&]+)', url).group(1)
-    bizCode = re.search(r'bizCode=([^&]+)', url).group(1)
-    homeworkId = "0"
-    reportId = re.search(r'reportId=([^&]+)', url).group(1)
-    if (bizCode == "") or (paperId == "") or (homeworkId == "") or (reportId == ""):
-        st.error("未解析到paperID,homeworkId,reportId或bizCode，请输入完整的链接!")
+    try:
+        paperId = re.search(r'paperId=([^&]+)', url).group(1)
+        bizCode = re.search(r'bizCode=([^&]+)', url).group(1)
+        homeworkId = "0"
+        reportId = re.search(r'reportId=([^&]+)', url).group(1)
+    except Exception as e:
+        st.error("请输入完整的链接!")
+        st.stop()
     #st.write("开始获取答案...")
     ewt.genshin_launch(paperId,homeworkId,bizCode,reportId,paper_rid,homework_rid, cookies,auto_flag,method_flag)
