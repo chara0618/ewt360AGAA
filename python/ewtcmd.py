@@ -5,9 +5,15 @@ import json
 import streamlit as st
 from streamlit.components.v1 import html
 
-def testgood():
-    st.write("开始测试...")
-    st.write("测试成功")
+def testgood(cookies):
+    #st.write("开始测试...")
+    resp = requests.get(url_baseInfo, headers={'token':cookies.get('token')}, cookies=cookies)
+    resp.raise_for_status()
+    if not resp.json().get('success'):
+        st.error("测试请求失败，错误信息："+resp.json().get('msg'))
+        st.error("尝试重新登录。")
+        st.stop()
+    #st.write("测试成功")
 def get_reportId(url_b, params_b, cookies):
     try:
         response_b = requests.get(url_b, params=params_b, cookies=cookies)
@@ -21,10 +27,10 @@ def get_reportId(url_b, params_b, cookies):
                     st.error("解析的JSON数据中缺少必要的键或data为None")
                     st.stop()
             else:
-                st.error("请求未成功，错误信息：", response_b_json.get('msg'))
+                st.error("请求未成功，错误信息："+response_b_json.get('msg'))
                 st.stop()
         else:
-            st.error("请求失败，状态码：", response_b.status_code)
+            st.error("请求失败，状态码："+str(response_b.status_code))
             st.stop()
     except json.JSONDecodeError:
         st.error("响应内容不是有效的JSON")
@@ -33,7 +39,6 @@ def get_reportId(url_b, params_b, cookies):
         st.error("发生错误："+str(e))
         st.error("请检查各项内容是否正确填写。")
         st.stop()
-    return None
 
 def get_sorted_question_ids(url_a, params, cookies):
     try:
@@ -64,16 +69,16 @@ def get_sorted_question_ids(url_a, params, cookies):
                     st.error("解析的JSON数据中缺少必要的键或data为None")
                     st.stop()
             else:
-                st.error("请求未成功，错误信息：", response_a_json.get('msg'))
+                st.error("请求未成功，错误信息："+response_a_json.get('msg'))
                 st.stop()
         else:
-            st.error("请求失败，状态码：", response_a.status_code)
+            st.error("请求失败，状态码："+str(response_a.status_code))
             st.stop()
     except json.JSONDecodeError:
         st.error("响应内容不是有效的JSON")
         st.stop()
     except Exception as e:
-        st.error("发生错误：", str(e))
+        st.error("发生错误："+str(e))
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
@@ -96,10 +101,10 @@ def get_questions_list(url_c, params_c, cookies):
                     st.error("解析的JSON数据中缺少必要的键或data为None")
                     st.stop()
             else:
-                st.error("请求未成功，错误信息：", response_c_json.get('msg'))
+                st.error("请求未成功，错误信息："+response_c_json.get('msg'))
                 st.stop()
         else:
-            st.error("请求失败，状态码：", response_c.status_code)
+            st.error("请求失败，状态码："+str(response_c.status_code))
             st.stop()
     except json.JSONDecodeError:
         st.error("响应内容不是有效的JSON")
@@ -137,13 +142,13 @@ def auto_submit_homework(url_e, data_get, cookies):
     try:
         response_e = requests.post(url_e, json=data_get, cookies=cookies)
         if response_e.status_code != 200:
-            st.error("请求失败，状态码：", response_e.status_code)
+            st.error("请求失败，状态码："+str(response_e.status_code))
             st.stop()
     except json.JSONDecodeError:
         st.error("响应内容不是有效的JSON")
         st.stop()
     except Exception as e:
-        st.error("发生错误：", str(e))
+        st.error("发生错误："+str(e))
         st.error("请检查各项内容是否正确填写。")
         st.stop()
     return None
@@ -320,6 +325,7 @@ url_baseInfo = 'https://web.ewt360.com/api/usercenter/user/baseinfo'
 url_homeworkInfo = 'https://web.ewt360.com/api/homeworkprod/homework/student/getStudentHomeworkInfo'
 url_studyRecord = 'https://web.ewt360.com/api/homeworkprod/homework/student/listStudyRecord'
 url_practice = 'https://web.ewt360.com/api/homeworkprod/student/homework/task/queryStudentLessonStudyGuideAndPractice'
+url_login = 'https://web.ewt360.com/api/authcenter/v2/oauth/login/account'
 
 """
 将cookie填入下方
@@ -335,6 +341,7 @@ cookies = {
 
 def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,cookies,auto_flag,method_flag):
     global sorted_pids, sorted_subjective, index,do_e,do_d,right_answer
+    testgood(cookies)
     #st.write("开始分配变量...")
     paperId = paperId
     homeworkId = homeworkId

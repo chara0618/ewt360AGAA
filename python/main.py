@@ -1,4 +1,5 @@
 import pickle
+import time
 
 import requests
 import streamlit as st
@@ -10,6 +11,8 @@ from urllib.parse import unquote
 
 import strtojs as stj
 import ewtcmd as ewt
+from login import get_token
+from ewtcmd import url_login
 
 st.set_page_config(
     # 可恶的Streamlit, 为什么设置页面标题函数的一定要是第一行代码？！
@@ -26,6 +29,17 @@ try:
 except OSError as e:
     paper_rid = '0'
     homework_rid = '0'
+try:
+    with open('token.data', 'rb') as f:
+        tup = pickle.load(f)
+        token_timestamp = tup[1]
+        if int(time.time()) - token_timestamp < 600:
+            cookie_area = tup[0]
+        else:
+            cookie_area = ''
+except OSError as e:
+    token_timestamp = 0
+    cookie_area = ''
 contid = None
 st.markdown(
     """
@@ -38,20 +52,50 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.caption("EWT360AGAA 1.0.1-hotfix")
+
+@st.dialog('登录E网通')
+def login():
+    global cookie_area
+    username = st.text_input(label='账号')
+    password = st.text_input(label='密码', type='password')
+    if st.button(label="登录", key="login_button"):
+        res, token = get_token(username, password, url_login)
+        if res == 1:
+            st.error('请填写正确的账号和密码。')
+            st.stop()
+        elif res == 2:
+            st.error('登录过于频繁，请稍后再试。')
+            st.stop()
+        elif res == 3:
+            st.error('登录密码错误超限，请在E网通网站重新登录并进行安全验证。')
+            st.stop()
+        elif res == 4:
+            st.error('账号和密码不能为空。')
+            st.stop()
+        elif res == -1:
+            st.error(f'发生错误:{token}')
+            st.stop()
+        cookie_area = 'token=' + token
+        with open('token.data', 'wb') as f:
+            pickle.dump((cookie_area,int(time.time())), f)
+        st.rerun()
+    st.stop()
+
+
+
+if int(time.time()) - token_timestamp > 600:
+    login()
+st.caption("EWT360AGAA 1.0.2")
 st.title("EWT360AGAA")
-st.write("欢迎使用一网通教辅答案获取工具！")
+st.write("欢迎使用E网通教辅答案获取工具！")
 st.write("GUI By Streamlit & Code_S96 | Program By Qzgeek | Fork By 皆生函数")
-cookie_area = st.text_area(label="在这里输入Cookies...")
-cookie_flag = st.checkbox(label="自动获取reportId", value=True)
-if not cookie_flag:
-    paper_rid = st.text_area(label="已完成试卷的reportId...")
-    homework_rid = st.text_area(label="已完成课后习题的reportId...")
 url = st.text_area(label="答题链接...")
 upfile = st.file_uploader("在这里上传二维码照片...(限大小10M以内)", type=["jpg", "png", "gif"],accept_multiple_files=False)
-auto_flag = st.checkbox(label="自动答题",value=True)
+auto_flag = st.checkbox(label="自动答题",value=False)
 method_flag = st.checkbox(label="显示解析",value=False)
 submit_button = st.button(label="提交并处理信息", key="process_button")
+if st.button(label='重新登录', key='relogin_button'):
+    login()
 st.markdown("---")
 #st.write("以下是程序自动生成日志↓（答案会生成在最底下）")
 if upfile is not None and url == '':
@@ -89,13 +133,7 @@ if upfile is not None and url == '':
         st.error(f"解析失败: {e}")
         st.stop()
 if submit_button:
-    if cookie_area == '':
-        st.error("请输入cookie!")
-        st.stop()
-    if (paper_rid == '') or (homework_rid == ''):
-        st.error("请输入reportId!")
-        st.stop()
-    elif url == '':
+    if url == '':
         st.error("请输入答题链接!")
         st.stop()
     #st.write("开始处理信息...")
