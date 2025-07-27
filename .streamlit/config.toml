@@ -1,0 +1,6 @@
+[server]
+port=8500
+enableXsrfProtection=false
+enableCORS=false
+[global]
+developmentMode=false
