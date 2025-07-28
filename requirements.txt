@@ -1,5 +1,3 @@
-Pillow==11.3.0
 pycryptodome==3.23.0
-pyzbar==0.1.9
 Requests==2.32.4
 streamlit==1.47.0

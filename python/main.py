@@ -1,11 +1,8 @@
 import pickle
 import time
 
-import requests
 import streamlit as st
 import re
-from PIL import Image
-from urllib.parse import unquote
 import strtojs as stj
 import ewtcmd as ewt
 from login import get_token
