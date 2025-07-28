@@ -48,7 +48,12 @@ try:
         settings_timestamp = tup[-1]
 except OSError as e:
     settings_timestamp = 0
-    st.session_state.settings_list = {}
+    st.session_state.settings_list = {
+        'auto_flag':False,
+        'auto_submit':False,
+        'only_choice':False,
+        'method_flag':False
+    }
 st.markdown(
     """
     <style>
