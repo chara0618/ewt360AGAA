@@ -5,15 +5,6 @@ import json
 import streamlit as st
 from streamlit.components.v1 import html
 
-def testgood(cookies):
-    #st.write("开始测试...")
-    resp = requests.get(url_baseInfo, headers={'token':cookies.get('token')}, cookies=cookies)
-    resp.raise_for_status()
-    if not resp.json().get('success'):
-        st.error("测试请求失败，错误信息："+resp.json().get('msg'))
-        st.error("尝试重新登录。")
-        st.stop()
-    #st.write("测试成功")
 def get_reportId(url_b, params_b, cookies):
     try:
         response_b = requests.get(url_b, params=params_b, cookies=cookies)
@@ -116,7 +107,6 @@ def get_questions_list(url_c, params_c, cookies):
 
 
 def auto_do_homework(url_d, params_d, data_to_send, cookies):
-    global response_d,response_d_a
     try:
         response_d = requests.get(url_d, params=params_d, cookies=cookies)
         response_d_a = requests.post(url_d_a, json=data_to_send, cookies=cookies)
@@ -182,6 +172,7 @@ def get_right_answer(data, qid, cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
+@st.cache_data(ttl=3600)
 def get_schoolId(cookies):
     try:
         # 获取schoolId
@@ -201,30 +192,29 @@ def get_schoolId(cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-def get_all_homeworkIds(cookies):
+@st.cache_data(ttl=3600)
+def get_all_homeworks(cookies):
     try:
-        homeworkIds = []
-        schoolId = get_schoolId(cookies)
+        all_homeworks = []
         # 获取所有任务
-        for status in range(0, 3):
-            finished_courses = requests.post(url_homeworkInfo, cookies=cookies,  headers={'token':cookies.get('token')},
-                                            json={
-                                                'schoolId': schoolId,
-                                                'subject': None,
-                                                "type": None,
-                                                "status": status,
-                                                "pageIndex": 1,
-                                                "pageSize": 20
-                                            })
-            finished_courses.raise_for_status()
-            finished_courses_json = finished_courses.json()
-            if finished_courses_json.get('data') or finished_courses_json.get('data') == []:
-                for course in finished_courses_json.get('data'):
-                    homeworkIds.append(course.get('homeworkId'))
-            else:
-                st.error("解析的JSON数据中缺少必要的键或data为None")
-                st.stop()
-        return homeworkIds
+        homeworks = requests.post(url_homeworkInfo, cookies=cookies,  headers={'token':cookies.get('token')},
+                                        json={
+                                            'schoolId': get_schoolId(cookies),
+                                            'subject': None,
+                                            "type": None,
+                                            "status": 0,
+                                            "pageIndex": 1,
+                                            "pageSize": 20
+                                        })
+        homeworks.raise_for_status()
+        homeworks_json = homeworks.json()
+        if homeworks_json.get('data') or homeworks_json.get('data') == []:
+            for homework in homeworks_json.get('data'):
+                all_homeworks.append(homework)
+        else:
+            st.error("解析的JSON数据中缺少必要的键或data为None")
+            st.stop()
+        return all_homeworks
     except requests.exceptions.RequestException as e:
         st.error(f"请求失败: {str(e)}")
         st.stop()
@@ -233,13 +223,89 @@ def get_all_homeworkIds(cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-def get_finishes_lessons(cookies):
+@st.cache_data(ttl=3600)
+def get_all_dateStats(homeworkId, cookies) -> list:
+    try:
+        resp = requests.post(url_daySubjectStat, cookies=cookies, headers={'token': cookies.get('token')}, json={
+            "schoolId": 0,
+            "homeworkId": homeworkId,
+            "mustLearnSubjectList": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15]
+        })
+        resp.raise_for_status()
+        resp_json = resp.json()
+        if resp_json.get('data'):
+            return resp_json.get('data').get('dateStat')
+        else:
+            st.error("解析的JSON数据中缺少必要的键或data为None")
+            st.stop()
+    except requests.exceptions.RequestException as e:
+        st.error(f"请求失败: {str(e)}")
+        st.stop()
+    except Exception as e:
+        st.error(f"发生错误: {str(e)}")
+        st.error("请检查各项内容是否正确填写。")
+        st.stop()
+
+@st.cache_data(ttl=3600)
+def get_practices(lessonIdList, cookies):
+    try:
+        practices = requests.post(url_practice, cookies=cookies, headers={'token': cookies.get('token')}, json={
+            "schoolId": "0",
+            "lessonIdList": lessonIdList,
+            "taskIds": ["0"],
+            "homeworkId": "0"
+        })
+        practices.raise_for_status()
+        practices_json = practices.json()
+        if practices_json.get('data'):
+            return  practices_json.get('data')
+        else:
+            st.error("解析的JSON数据中缺少必要的键或data为None")
+            st.stop()
+    except requests.exceptions.RequestException as e:
+        st.error(f"请求失败: {str(e)}")
+        st.stop()
+    except Exception as e:
+        st.error(f"发生错误: {str(e)}")
+        st.error("请检查各项内容是否正确填写。")
+        st.stop()
+
+@st.cache_data(ttl=3600)
+def get_day_lessons(dateId, homeworkId, cookies):
+    try:
+        resp = requests.post(url_pageHomeworkTasks, cookies=cookies, headers={'token': cookies.get('token')}, json={
+            "schoolId": get_schoolId(cookies),
+            "homeworkId": homeworkId,
+            "mustLearnSubjectList": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15],
+            "queryMustLearn": 1,
+            "dayId": dateId,
+            "pageIndex": 1,
+            "pageSize": 30
+        })
+        resp.raise_for_status()
+        resp_json = resp.json()
+        if resp_json.get('data').get('data'):
+            return resp_json.get('data').get('data')
+        else:
+            st.error("解析的JSON数据中缺少必要的键或data为None")
+            st.stop()
+    except requests.exceptions.RequestException as e:
+        st.error(f"请求失败: {str(e)}")
+        st.stop()
+    except Exception as e:
+        st.error(f"发生错误: {str(e)}")
+        st.error("请检查各项内容是否正确填写。")
+        st.stop()
+
+def get_finished_lessons(cookies):
     try:
         # 获取已完成课程
-        schoolId = get_schoolId(cookies)
-        homeworkIds = get_all_homeworkIds(cookies)
+        homeworkIds = []
+        homeworks = get_all_homeworks(cookies)
+        for homework in homeworks:
+            homeworkIds.append(homework.get('homeworkId'))
         lessons = requests.post(url_studyRecord, cookies=cookies,  headers={'token':cookies.get('token')}, json={
-            "schoolId": schoolId,
+            "schoolId": get_schoolId(cookies),
             "sceneId": "0",
             "homeworkIds": homeworkIds,
             "sourceType": 2
@@ -263,33 +329,20 @@ def get_finished_reportId(cookies):
     try:
         lessonIdList = []
         paperIdList = []
-        paper_rid = '0'
-        homework_rid = '0'
-        finished_lessons = get_finishes_lessons(cookies)
+        finished_lessons = get_finished_lessons(cookies)
         for lesson in finished_lessons:
             if len(lesson.get('contentId')) > 6:
                 paperIdList.append(lesson.get('contentId'))
                 continue
             lessonIdList.append(lesson.get('contentId'))
         #获取课后习题reportId
-        practices = requests.post(url_practice, cookies=cookies, headers={'token':cookies.get('token')}, json={
-            "schoolId": "0",
-            "lessonIdList": lessonIdList,
-            "taskIds": ["0"],
-            "homeworkId": "0"
-        })
-        practices.raise_for_status()
-        practices_json = practices.json()
-        if practices_json.get('data'):
-            for practice in practices_json.get('data'):
-                if practice.get('studyTest').get('finishStatus') == 1: #未做课后习题的课程也可能出现在学习记录中
-                    homework_rid = practice.get('studyTest').get('reportId')
-                    break
-            else:
-                st.error("未检测到已完成的课后习题!")
-                st.stop()
+        practices = get_practices(lessonIdList, cookies)
+        for practice in practices:
+            if practice.get('studyTest').get('finishStatus') == 1:  # 未做课后习题的课程也可能出现在学习记录中
+                homework_rid = practice.get('studyTest').get('reportId')
+                break
         else:
-            st.error("解析的JSON数据中缺少必要的键或data为None")
+            st.error("未检测到已完成的课后习题!")
             st.stop()
         #获取试卷reportId
         if not paperIdList:
@@ -313,6 +366,29 @@ def get_finished_reportId(cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
+@st.cache_data(ttl=3600)
+def convert_contentId(contentId,cookies):
+    if len(contentId) > 6:
+        reportId = get_reportId(url_b, {"paperId":contentId,
+            "reportId":"0",
+            "platform":"1",
+            "bizCode":'205',
+            "isRepeat":"1",
+            "homeworkId":"0",
+            "token":cookies['token']},cookies)
+        return reportId, contentId,'205'
+    else:
+        practices = get_practices([contentId], cookies)
+        paperId = practices[0].get('studyTest').get('paperId')
+        reportId = get_reportId(url_b, {"paperId":paperId,
+        "reportId":"0",
+        "platform":"1",
+        "bizCode":'204',
+        "isRepeat":"1",
+        "homeworkId":"0",
+        "token":cookies['token']},cookies)
+        return reportId, paperId, '204'
+
 # 请求的URL
 url_a = 'https://web.ewt360.com/api/answerprod/app/answer/summaryReport'
 url_b = 'https://web.ewt360.com/api/answerprod/web/answer/report'
@@ -326,36 +402,22 @@ url_homeworkInfo = 'https://web.ewt360.com/api/homeworkprod/homework/student/get
 url_studyRecord = 'https://web.ewt360.com/api/homeworkprod/homework/student/listStudyRecord'
 url_practice = 'https://web.ewt360.com/api/homeworkprod/student/homework/task/queryStudentLessonStudyGuideAndPractice'
 url_login = 'https://web.ewt360.com/api/authcenter/v2/oauth/login/account'
+url_daySubjectStat = 'https://web.ewt360.com/api/homeworkprod/student/homework/task/getStudentHomeworkDaySubjectStat'
+url_pageHomeworkTasks = 'https://web.ewt360.com/api/homeworkprod/student/homework/task/pageHomeworkTasks'
 
-"""
-将cookie填入下方
-格式应该为：
-cookies = {
-    "xxx": "xxxxx",
-    "xxx": "xxxxx",
-    ………
-    "xxx": "xxxxx"
-}
-"""
-
-
-def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,cookies,auto_flag,method_flag):
-    global sorted_pids, sorted_subjective, index,do_e,do_d,right_answer
-    testgood(cookies)
-    #st.write("开始分配变量...")
-    paperId = paperId
-    homeworkId = homeworkId
-    bizCode = bizCode
-    reportId = reportId
+def genshin_launch(chosen,title,paper_rid,homework_rid,cookies,answer):
+    # st.write("开始分配变量...")
+    reportId,paperId,bizCode = convert_contentId(chosen,cookies)
+    homeworkId = '0'
     paper_rid = paper_rid
     homework_rid = homework_rid
     cookies = cookies
     token = cookies.get('token')
     if paper_rid == '0' and homework_rid == '0':
         homework_rid, paper_rid = get_finished_reportId(cookies)
-        st.info(f'✅已完成试卷reportId:{homework_rid},已完成课后习题reportId:{paper_rid}')
-    with open('reportId.data', 'wb') as f:
-        pickle.dump((homework_rid,paper_rid), f)
+        #st.info(f'✅已完成试卷reportId:{homework_rid},已完成课后习题reportId:{paper_rid}')
+        with open('.reportId.data', 'wb') as f:
+            pickle.dump((homework_rid,paper_rid), f)
     if reportId == '0':
         params_b = {
             "paperId":paperId,
@@ -370,7 +432,7 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
         reportId = get_reportId(url_b, params_b, cookies)
     params_c = {
         "paperId": paperId,
-        "reportId": "",
+        "reportId": '',
         "platform": "1",
         "bizCode": bizCode,
         "homeworkId": homeworkId,
@@ -378,22 +440,24 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
         "token": token,
     }
     if bizCode == '204':
-        st.info("✅目标为课后习题")
+        #st.info("✅目标为课后习题")
         params_c['reportId'] = homework_rid
     elif bizCode == '205':
-        st.info("✅目标为试卷")
+        #st.info("✅目标为试卷")
         params_c['reportId'] = paper_rid
     elif bizCode == '201':
-        st.warning("⚠️未知目标，按试卷处理")
+        st.warning(title+":⚠️未知目标，按试卷处理")
         params_c['reportId'] = paper_rid
     else:
-        st.error("bizCode不正确,请输入完整的链接!")
+        st.error(title+":bizCode不正确")
         st.stop()
     #st.write("调用get_questions_list 函数获取题目列表...")
     sorted_pids, sorted_ppids,sorted_subjective = get_questions_list(url_c, params_c, cookies)
 
     index = 0
     #st.write("调用for循环，调用auto_do_homework 函数做题...")
+    ep = answer.expander(title)
+    no_subjective_flag = True
     for index, (question_pid,question_ppid,subjective_flag) in enumerate(zip(sorted_pids,sorted_ppids,sorted_subjective), start=1):
         params_d = {
             "paperId": paperId,
@@ -411,13 +475,13 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
         right_answer,method = get_right_answer(params_d,qid, cookies)
         # 检查答案是否为主观题
         if subjective_flag:
-            st.success(f"问题{index}: 如下")
-            answer_all = '<div style="background-color:White;">'
+            no_subjective_flag = False
+            ep.success(f"问题{index}: 如下")
+            answer_all = ''
             for answer_content in right_answer:
                 answer_all = answer_all + answer_content + '&nbsp&nbsp&nbsp&nbsp'
             answer_all = answer_all.replace('</div>', '')
-            answer_all = answer_all + '</div>'
-            html(answer_all,scrolling=True,height=100)
+            ep.html(answer_all)
             #     # 提取文本内容和图片URL
             #     text_content = re.sub('<.*?>', '', answer_content)
             #     # 移除所有HTML标签
@@ -432,12 +496,12 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
             answer_all = ''
             for answer_content in right_answer:
                 answer_all = answer_all + answer_content + ' '
-            st.success(f"问题{index}: {answer_all} ")
-        if method_flag:
-            html('<div style="background-color:White;">'+method+'</div>',scrolling=True,height=300)
+            ep.success(f"问题{index}: {answer_all} ")
+        if st.session_state.settings_list['method_flag']:
+            ep.html(method)
         # 自动答题
-        if auto_flag:
-            if subjective_flag:
+        if st.session_state.settings_list['auto_flag']:
+            if subjective_flag and not st.session_state.settings_list['only_choice']:
                 data_to_send = {
                     "paperId": paperId,
                     "reportId": reportId,
@@ -450,7 +514,7 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
                             ],
                             "totalSeconds": 14,
                             "questionNo": 1,
-                            "cateId": 1,
+                            "cateId": 5,
                             "assignPoints": False
                         }
                     ],
@@ -458,7 +522,7 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
                     "homeworkId": homeworkId,
                     "assignPoints": False
                 }
-            else:
+            elif not subjective_flag:
                 data_to_send = {
                     "paperId": paperId,
                     "reportId": reportId,
@@ -468,19 +532,20 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
                             "id": question_pid,
                             "myAnswers": right_answer,
                             "totalSeconds": 14,
-                            "questionNo": 1,
+                            "questionNo": index,
                             "cateId": 1,
                             "assignPoints": False
                         }
                     ],
                     "bizCode": params_c['bizCode'],
-                    "homeworkId": homeworkId,
                     "assignPoints": False
                 }
+            else:
+                continue
             params_d["questionId"] = question_pid
             auto_do_homework(url_d, params_d, data_to_send, cookies)
     # 自动提交
-    if auto_flag:
+    if (st.session_state.settings_list['auto_submit'] and st.session_state.settings_list['auto_flag']) and (not st.session_state.settings_list['only_choice'] or no_subjective_flag):
         data_get = {
             "paperPackageId": 0,
             "paperId": paperId,
@@ -491,8 +556,8 @@ def genshin_launch(paperId, homeworkId,bizCode,reportId,paper_rid,homework_rid,c
             "homeworkId": homeworkId
         }
         auto_submit_homework(url_e, data_get, cookies)
-        st.success(f'自动作答完成。')
-    # 要发送的数据（将作为查询字符串附加到URL上）
+        st.success(f'{title} 自动提交完成。')
+    # #要发送的数据（将作为查询字符串附加到URL上）
     # params = {
     #     "bizCode": "204",
     #     "chapterId": "0",
