@@ -101,7 +101,7 @@ def choose():
     all_homeworks = []
     st.session_state.chosen_list = []
     st.session_state.chosen_title_list = []
-    st.write('只能选择未完成的课程')
+    st.write('只能选择未完成和有习题的课程')
     col1,col2 = st.columns([0.1,0.9],gap=None,)
     if col1.button(label='刷新'):
         testgood(cookies)
@@ -112,13 +112,15 @@ def choose():
                 titles.append(homework.get('title'))
                 all_homeworks.append(homework)
         for (tab, homework) in zip(st.tabs(titles), all_homeworks):
-            days = ewt.get_all_dateStats(homework.get('homeworkId'), cookies)
-            for day in days:
+            for day in ewt.get_all_dateStats(homework.get('homeworkId'), cookies):
                 with tab.expander(time.strftime('%Y年%m月%d日', time.localtime(day.get('date')/1000))):
                     for lesson in ewt.get_day_lessons(day.get('dateId'), homework.get('homeworkId'), cookies):
                         if len(lesson.get('contentId')) < 10:
-                            finishStatus = ewt.get_practices([lesson.get('contentId')], cookies)[0].get("studyTest").get('finishStatus')
-                            disable_flag = (finishStatus==1)
+                            practices = ewt.get_practices([lesson.get('contentId')], cookies)
+                            if practices is None:
+                                disable_flag = True
+                            else:
+                                disable_flag = (practices[0].get("studyTest").get('finishStatus')==1)
                         else:
                             disable_flag = lesson.get('finished')
                         if st.checkbox('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'),disabled=disable_flag):

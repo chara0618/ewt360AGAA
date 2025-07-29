@@ -3,7 +3,7 @@ import pickle
 import requests
 import json
 import streamlit as st
-from streamlit.components.v1 import html
+
 
 def get_reportId(url_b, params_b, cookies):
     try:
@@ -247,7 +247,7 @@ def get_all_dateStats(homeworkId, cookies) -> list:
         st.stop()
 
 @st.cache_data(ttl=3600)
-def get_practices(lessonIdList, cookies):
+def get_practices(lessonIdList, cookies) -> list | None:
     try:
         practices = requests.post(url_practice, cookies=cookies, headers={'token': cookies.get('token')}, json={
             "schoolId": "0",
@@ -258,8 +258,11 @@ def get_practices(lessonIdList, cookies):
         practices.raise_for_status()
         practices_json = practices.json()
         if practices_json.get('data'):
-            return  practices_json.get('data')
+            return practices_json.get('data')
+        elif not practices_json.get('data'):
+            return None
         else:
+            st.write(lessonIdList)
             st.error("解析的JSON数据中缺少必要的键或data为None")
             st.stop()
     except requests.exceptions.RequestException as e:
@@ -297,26 +300,25 @@ def get_day_lessons(dateId, homeworkId, cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
+@st.cache_data(ttl=3600,show_spinner='正在获取reportId...')
 def get_finished_lessons(cookies):
     try:
-        # 获取已完成课程
-        homeworkIds = []
-        homeworks = get_all_homeworks(cookies)
-        for homework in homeworks:
-            homeworkIds.append(homework.get('homeworkId'))
-        lessons = requests.post(url_studyRecord, cookies=cookies,  headers={'token':cookies.get('token')}, json={
-            "schoolId": get_schoolId(cookies),
-            "sceneId": "0",
-            "homeworkIds": homeworkIds,
-            "sourceType": 2
-        })
-        lessons.raise_for_status()
-        lessons_json = lessons.json()
-        if lessons_json.get('data'):
-            return lessons_json.get('data')
-        else:
-            st.error("解析的JSON数据中缺少必要的键或data为None")
-            st.stop()
+        homeworks = []
+        papers = []
+        for homework in get_all_homeworks(cookies):
+            for day in get_all_dateStats(homework.get('homeworkId'), cookies):
+                for lesson in get_day_lessons(day.get('dateId'), homework.get('homeworkId'), cookies):
+                    if len(lesson.get('contentId')) < 10:
+                        practices = get_practices([lesson.get('contentId')], cookies)
+                        if practices is None:
+                            continue
+                        finishStatus = practices[0].get("studyTest").get('finishStatus')
+                        if finishStatus == 1:
+                            homeworks.append(practices[0])
+                    else:
+                        if lesson.get('finished'):
+                            papers.append(lesson)
+        return homeworks,papers
     except requests.exceptions.RequestException as e:
         st.error(f"请求失败: {str(e)}")
         st.stop()
@@ -324,40 +326,67 @@ def get_finished_lessons(cookies):
         st.error(f"发生错误: {str(e)}")
         st.error("请检查各项内容是否正确填写。")
         st.stop()
+    # try:
+    #     # 获取已完成课程
+    #     homeworkIds = []
+    #     homeworks = get_all_homeworks(cookies)
+    #     for homework in homeworks:
+    #         homeworkIds.append(homework.get('homeworkId'))
+    #     lessons = requests.post(url_studyRecord, cookies=cookies,  headers={'token':cookies.get('token')}, json={
+    #         "schoolId": get_schoolId(cookies),
+    #         "sceneId": "0",
+    #         "homeworkIds": homeworkIds,
+    #         "sourceType": 2
+    #     })
+    #     lessons.raise_for_status()
+    #     lessons_json = lessons.json()
+    #     if lessons_json.get('data'):
+    #         return lessons_json.get('data')
+    #     else:
+    #         st.error("解析的JSON数据中缺少必要的键或data为None")
+    #         st.stop()
+    # except requests.exceptions.RequestException as e:
+    #     st.error(f"请求失败: {str(e)}")
+    #     st.stop()
+    # except Exception as e:
+    #     st.error(f"发生错误: {str(e)}")
+    #     st.error("请检查各项内容是否正确填写。")
+    #     st.stop()
 
 def get_finished_reportId(cookies):
     try:
-        lessonIdList = []
-        paperIdList = []
-        finished_lessons = get_finished_lessons(cookies)
-        for lesson in finished_lessons:
-            if len(lesson.get('contentId')) > 6:
-                paperIdList.append(lesson.get('contentId'))
-                continue
-            lessonIdList.append(lesson.get('contentId'))
-        #获取课后习题reportId
-        practices = get_practices(lessonIdList, cookies)
-        for practice in practices:
-            if practice.get('studyTest').get('finishStatus') == 1:  # 未做课后习题的课程也可能出现在学习记录中
-                homework_rid = practice.get('studyTest').get('reportId')
-                break
-        else:
-            st.error("未检测到已完成的课后习题!")
-            st.stop()
-        #获取试卷reportId
-        if not paperIdList:
-            st.error('未检测到已完成的试卷!')
-            st.stop()
-        paper_rid = get_reportId(url_b, {
-            "paperId":paperIdList[0],
-            "reportId":"0",
-            "platform":"1",
-            "bizCode":'205',
-            "isRepeat":"1",
-            "homeworkId":"0",
-            "token":cookies.get('token')
-        }, cookies)
-        return homework_rid, paper_rid
+        homeworks, papers = get_finished_lessons(cookies)
+        return homeworks[0].get("studyTest").get('reportId'), papers[0].get("reportId")
+        # lessonIdList = []
+        # paperIdList = []
+        # finished_lessons = get_finished_lessons(cookies)
+        # for lesson in finished_lessons:
+        #     if len(lesson.get('contentId')) > 10:
+        #         paperIdList.append(lesson.get('contentId'))
+        #         continue
+        #     lessonIdList.append(lesson.get('contentId'))
+        # #获取课后习题reportId
+        # practices = get_practices(lessonIdList, cookies)
+        # for practice in practices:
+        #     if practice.get('studyTest').get('finishStatus') == 1:  # 未做课后习题的课程也可能出现在学习记录中
+        #         homework_rid = practice.get('studyTest').get('reportId')
+        #         break
+        # else:
+        #     st.error("未检测到已完成的课后习题!")
+        #     st.stop()
+        # #获取试卷reportId
+        # if not paperIdList:
+        #     st.error('未检测到已完成的试卷!')
+        #     st.stop()
+        # paper_rid = get_reportId(url_b, {
+        #     "paperId":paperIdList[0],
+        #     "reportId":"0",
+        #     "platform":"1",
+        #     "bizCode":'205',
+        #     "isRepeat":"1",
+        #     "homeworkId":"0",
+        #     "token":cookies.get('token')
+        # }, cookies)
     except requests.exceptions.RequestException as e:
         st.error(f"请求失败: {str(e)}")
         st.stop()
@@ -379,6 +408,9 @@ def convert_contentId(contentId,cookies):
         return reportId, contentId,'205'
     else:
         practices = get_practices([contentId], cookies)
+        if practices is None:
+            st.error('请选择有习题的课程!')
+            st.stop()
         paperId = practices[0].get('studyTest').get('paperId')
         reportId = get_reportId(url_b, {"paperId":paperId,
         "reportId":"0",
@@ -415,7 +447,7 @@ def genshin_launch(chosen,title,paper_rid,homework_rid,cookies,answer):
     token = cookies.get('token')
     if paper_rid == '0' and homework_rid == '0':
         homework_rid, paper_rid = get_finished_reportId(cookies)
-        #st.info(f'✅已完成试卷reportId:{homework_rid},已完成课后习题reportId:{paper_rid}')
+        st.info(f'✅已完成试卷reportId:{homework_rid},已完成课后习题reportId:{paper_rid}')
         with open('.reportId.data', 'wb') as f:
             pickle.dump((homework_rid,paper_rid), f)
     if reportId == '0':
