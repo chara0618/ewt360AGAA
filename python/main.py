@@ -174,7 +174,7 @@ with settings:
                 login()
 
 with main:
-    st.title("EWT360AGAA v1.0.3")
+    st.title("EWT360AGAA v1.0.3-hotfix")
     st.write("欢迎使用E网通教辅答案获取工具！")
     st.write("GUI By Streamlit & Code_S96 | Program By Qzgeek | Fork By 皆生函数")
     #url = st.text_area(label="答题链接...")
