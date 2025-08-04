@@ -172,7 +172,7 @@ def get_right_answer(data, qid, cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600)
+@st.cache_data()
 def get_schoolId(cookies):
     try:
         # 获取schoolId
@@ -192,7 +192,7 @@ def get_schoolId(cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600)
+@st.cache_data(persist=True)
 def get_all_homeworks(cookies):
     try:
         all_homeworks = []
@@ -223,7 +223,7 @@ def get_all_homeworks(cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600)
+@st.cache_data(persist=True)
 def get_all_dateStats(homeworkId, cookies) -> list:
     try:
         resp = requests.post(url_daySubjectStat, cookies=cookies, headers={'token': cookies.get('token')}, json={
@@ -246,7 +246,7 @@ def get_all_dateStats(homeworkId, cookies) -> list:
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600)
+@st.cache_data(persist=True)
 def get_practices(lessonIdList, cookies) -> list | None:
     try:
         practices = requests.post(url_practice, cookies=cookies, headers={'token': cookies.get('token')}, json={
@@ -273,7 +273,7 @@ def get_practices(lessonIdList, cookies) -> list | None:
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600)
+@st.cache_data(persist=True)
 def get_day_lessons(dateId, homeworkId, cookies):
     try:
         resp = requests.post(url_pageHomeworkTasks, cookies=cookies, headers={'token': cookies.get('token')}, json={
@@ -300,7 +300,8 @@ def get_day_lessons(dateId, homeworkId, cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600,show_spinner='正在获取reportId...')
+
+@st.cache_data(persist=True,show_spinner='正在获取reportId...（需要一定时间）')
 def get_finished_lessons(cookies):
     try:
         homeworks = []
@@ -357,36 +358,6 @@ def get_finished_reportId(cookies):
     try:
         homeworks, papers = get_finished_lessons(cookies)
         return homeworks[0].get("studyTest").get('reportId'), papers[0].get("reportId")
-        # lessonIdList = []
-        # paperIdList = []
-        # finished_lessons = get_finished_lessons(cookies)
-        # for lesson in finished_lessons:
-        #     if len(lesson.get('contentId')) > 10:
-        #         paperIdList.append(lesson.get('contentId'))
-        #         continue
-        #     lessonIdList.append(lesson.get('contentId'))
-        # #获取课后习题reportId
-        # practices = get_practices(lessonIdList, cookies)
-        # for practice in practices:
-        #     if practice.get('studyTest').get('finishStatus') == 1:  # 未做课后习题的课程也可能出现在学习记录中
-        #         homework_rid = practice.get('studyTest').get('reportId')
-        #         break
-        # else:
-        #     st.error("未检测到已完成的课后习题!")
-        #     st.stop()
-        # #获取试卷reportId
-        # if not paperIdList:
-        #     st.error('未检测到已完成的试卷!')
-        #     st.stop()
-        # paper_rid = get_reportId(url_b, {
-        #     "paperId":paperIdList[0],
-        #     "reportId":"0",
-        #     "platform":"1",
-        #     "bizCode":'205',
-        #     "isRepeat":"1",
-        #     "homeworkId":"0",
-        #     "token":cookies.get('token')
-        # }, cookies)
     except requests.exceptions.RequestException as e:
         st.error(f"请求失败: {str(e)}")
         st.stop()
@@ -395,7 +366,7 @@ def get_finished_reportId(cookies):
         st.error("请检查各项内容是否正确填写。")
         st.stop()
 
-@st.cache_data(ttl=3600)
+@st.cache_data()
 def convert_contentId(contentId,cookies):
     if len(contentId) > 6:
         reportId = get_reportId(url_b, {"paperId":contentId,

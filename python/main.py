@@ -11,8 +11,9 @@ from login import get_token
 #session_state:
 #   username,password
 #   chosen_list,chosen_title_list
-#   flag_list:
+#   settings_list:
 #       auto_flag,only_choice,auto_submit,method_flag
+#       homeworks #需加载的任务
 
 st.set_page_config(
         # 可恶的Streamlit, 为什么设置页面标题函数的一定要是第一行代码？！
@@ -52,7 +53,8 @@ except OSError as e:
         'auto_flag':False,
         'auto_submit':False,
         'only_choice':False,
-        'method_flag':False
+        'method_flag':False,
+        'homeworks': []
     }
 st.markdown(
     """
@@ -94,11 +96,14 @@ def login():
         st.session_state.chosen_list = []
         st.session_state.chosen_title_list = []
         st.rerun()
+    else:
+        st.stop()
 
 @st.dialog('选择课程',width='large')
-def choose():
+def choose_lessons(homeworks):
     titles = []
-    all_homeworks = []
+    for homework in homeworks:
+        titles.append(homework.get('title'))
     st.session_state.chosen_list = []
     st.session_state.chosen_title_list = []
     st.write('只能选择未完成和有习题的课程')
@@ -106,12 +111,8 @@ def choose():
     if col1.button(label='刷新'):
         testgood(cookies)
         st.cache_data.clear()
-    with st.spinner("正在加载..."):
-        for homework in ewt.get_all_homeworks(cookies):
-            if homework.get('status') != 3:
-                titles.append(homework.get('title'))
-                all_homeworks.append(homework)
-        for (tab, homework) in zip(st.tabs(titles), all_homeworks):
+    with st.spinner("正在加载...（初次加载需要一定时间）"):
+        for (tab, homework) in zip(st.tabs(titles), homeworks):
             for day in ewt.get_all_dateStats(homework.get('homeworkId'), cookies):
                 with tab.expander(time.strftime('%Y年%m月%d日', time.localtime(day.get('date')/1000))):
                     for lesson in ewt.get_day_lessons(day.get('dateId'), homework.get('homeworkId'), cookies):
@@ -148,6 +149,10 @@ cookies = stj.store_data(cookie_area)
 if cookies is None:
     login()
 testgood(cookies)
+if st.session_state.settings_list['homeworks'] == []:
+    for homework in ewt.get_all_homeworks(cookies):
+        if homework.get('status') != 3:
+            st.session_state.settings_list['homeworks'].append(homework)
 
 main,settings,answer = st.tabs(['主页','设置','答案'])
 with settings:
@@ -161,6 +166,14 @@ with settings:
             st.session_state.settings_list['only_choice'] = st.toggle(label='只答选择题', value=st.session_state.settings_list.get('only_choice'))
             st.session_state.settings_list['auto_submit'] = st.toggle(label='自动提交', value=st.session_state.settings_list.get('auto_submit'), help='与只答选择题同时启用时，只提交只有选择题的习题')
     st.session_state.settings_list['method_flag'] = st.toggle(label="显示解析", value=st.session_state.settings_list.get('method_flag'))
+    with st.expander("需加载的任务",expanded=True):
+        homeworks = []
+        with st.spinner("正在加载..."):
+            for homework in ewt.get_all_homeworks(cookies):
+                if st.checkbox(homework.get('title'), value=(homework in st.session_state.settings_list['homeworks'])):
+                    homeworks.append(homework)
+        st.session_state.settings_list['homeworks'] = homeworks
+
     if st.button(label='保存'):
         with st.spinner('正在保存'):
             with open('.settings.data', 'wb') as f:
@@ -174,12 +187,13 @@ with settings:
                 login()
 
 with main:
-    st.title("EWT360AGAA v1.0.3-hotfix")
+    st.title("EWT360AGAA")
+    st.caption("v1.0.4")
     st.write("欢迎使用E网通教辅答案获取工具！")
     st.write("GUI By Streamlit & Code_S96 | Program By Qzgeek | Fork By 皆生函数")
     #url = st.text_area(label="答题链接...")
     if st.button(label='选择课程', key='choose_button'):
-        choose()
+        choose_lessons(st.session_state.settings_list['homeworks'])
     if 'chosen_list' in st.session_state and st.session_state.chosen_list:
         with st.expander("已选课程",expanded=True):
             for title in st.session_state.chosen_title_list:
