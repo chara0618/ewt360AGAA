@@ -4,6 +4,9 @@ import requests
 import json
 import streamlit as st
 
+REPORT_ID_DATA = '.data/reportId.data'
+TOKEN_DATA = '.data/token.data'
+SETTINGS_DATA = '.data/settings.data'
 
 def get_reportId(url_b, params_b, cookies):
     try:
@@ -309,17 +312,19 @@ def get_finished_lessons(cookies):
         for homework in get_all_homeworks(cookies):
             for day in get_all_dateStats(homework.get('homeworkId'), cookies):
                 for lesson in get_day_lessons(day.get('dateId'), homework.get('homeworkId'), cookies):
-                    if len(lesson.get('contentId')) < 10:
+                    if len(lesson.get('contentId')) < 10 and homeworks == []:
                         practices = get_practices([lesson.get('contentId')], cookies)
                         if practices is None:
                             continue
                         finishStatus = practices[0].get("studyTest").get('finishStatus')
                         if finishStatus == 1:
                             homeworks.append(practices[0])
-                    else:
+                    if len(lesson.get('contentId')) >= 10 and papers == []:
                         if lesson.get('finished'):
                             papers.append(lesson)
-        return homeworks,papers
+                    if homeworks and papers:
+                        return homeworks, papers
+        return homeworks, papers
     except requests.exceptions.RequestException as e:
         st.error(f"请求失败: {str(e)}")
         st.stop()
@@ -418,8 +423,8 @@ def genshin_launch(chosen,title,paper_rid,homework_rid,cookies,answer):
     token = cookies.get('token')
     if paper_rid == '0' and homework_rid == '0':
         homework_rid, paper_rid = get_finished_reportId(cookies)
-        st.info(f'✅已完成试卷reportId:{homework_rid},已完成课后习题reportId:{paper_rid}')
-        with open('.reportId.data', 'wb') as f:
+        #st.info(f'✅已完成试卷reportId:{homework_rid},已完成课后习题reportId:{paper_rid}')
+        with open(REPORT_ID_DATA, 'wb') as f:
             pickle.dump((homework_rid,paper_rid), f)
     if reportId == '0':
         params_b = {

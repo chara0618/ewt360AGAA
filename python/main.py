@@ -1,3 +1,4 @@
+import os
 import pickle
 import time
 
@@ -23,7 +24,11 @@ st.set_page_config(
         layout="centered"  # 页面布局，可选 "wide" 或 "centered"
     )
 try:
-    with open('.reportId.data', 'rb') as f:
+    os.mkdir('.data')
+except FileExistsError:
+    pass
+try:
+    with open(ewt.REPORT_ID_DATA, 'rb') as f:
         tup = pickle.load(f)
         homework_rid = tup[0]
         paper_rid = tup[1]
@@ -31,7 +36,7 @@ except OSError as e:
     paper_rid = '0'
     homework_rid = '0'
 try:
-    with open('.token.data', 'rb') as f:
+    with open(ewt.TOKEN_DATA, 'rb') as f:
         tup = pickle.load(f)
         token_timestamp = tup[-1]
         if int(time.time()) - token_timestamp < 3600:
@@ -43,7 +48,7 @@ except OSError as e:
     token_timestamp = 0
     cookie_area = ''
 try:
-    with open('.settings.data', 'rb') as f:
+    with open(ewt.SETTINGS_DATA, 'rb') as f:
         tup = pickle.load(f)
         st.session_state.settings_list = tup[0]
         settings_timestamp = tup[-1]
@@ -91,7 +96,7 @@ def login():
             st.error(f'发生错误:{token}')
             st.stop()
         cookie_area = 'token=' + token
-        with open('.token.data', 'wb') as f:
+        with open(ewt.TOKEN_DATA, 'wb') as f:
             pickle.dump((st.session_state.username,cookie_area,int(time.time())), f)
         st.session_state.chosen_list = []
         st.session_state.chosen_title_list = []
@@ -107,10 +112,13 @@ def choose_lessons(homeworks):
     st.session_state.chosen_list = []
     st.session_state.chosen_title_list = []
     st.write('只能选择未完成和有习题的课程')
-    col1,col2 = st.columns([0.1,0.9],gap=None,)
+    col1,col2 = st.columns([0.1,0.9],gap=None)
     if col1.button(label='刷新'):
         testgood(cookies)
         st.cache_data.clear()
+    if not titles:
+        st.error("请选择需加载的任务")
+        st.stop()
     with st.spinner("正在加载...（初次加载需要一定时间）"):
         for (tab, homework) in zip(st.tabs(titles), homeworks):
             for day in ewt.get_all_dateStats(homework.get('homeworkId'), cookies):
@@ -166,17 +174,23 @@ with settings:
             st.session_state.settings_list['only_choice'] = st.toggle(label='只答选择题', value=st.session_state.settings_list.get('only_choice'))
             st.session_state.settings_list['auto_submit'] = st.toggle(label='自动提交', value=st.session_state.settings_list.get('auto_submit'), help='与只答选择题同时启用时，只提交只有选择题的习题')
     st.session_state.settings_list['method_flag'] = st.toggle(label="显示解析", value=st.session_state.settings_list.get('method_flag'))
-    with st.expander("需加载的任务",expanded=True):
+    with st.expander("要加载的任务",expanded=True):
         homeworks = []
         with st.spinner("正在加载..."):
             for homework in ewt.get_all_homeworks(cookies):
                 if st.checkbox(homework.get('title'), value=(homework in st.session_state.settings_list['homeworks'])):
                     homeworks.append(homework)
         st.session_state.settings_list['homeworks'] = homeworks
-
+    if st.button("清除缓存"):
+        st.cache_data.clear()
+        try:
+            os.remove('.data/reportId.data')
+        except FileNotFoundError as e:
+            pass
+        st.rerun()
     if st.button(label='保存'):
         with st.spinner('正在保存'):
-            with open('.settings.data', 'wb') as f:
+            with open(ewt.SETTINGS_DATA, 'wb') as f:
                 pickle.dump((st.session_state.settings_list,int(time.time())), f)
             st.rerun()
     if 'username' in st.session_state and st.session_state.username != '':
