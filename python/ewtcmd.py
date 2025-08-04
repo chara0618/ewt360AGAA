@@ -4,9 +4,9 @@ import requests
 import json
 import streamlit as st
 
-REPORT_ID_DATA = '.data/reportId.data'
-TOKEN_DATA = '.data/token.data'
-SETTINGS_DATA = '.data/settings.data'
+REPORT_ID_DATA = '.reportId.data'
+TOKEN_DATA = '.token.data'
+SETTINGS_DATA = '.settings.data'
 
 def get_reportId(url_b, params_b, cookies):
     try:

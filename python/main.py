@@ -24,10 +24,6 @@ st.set_page_config(
         layout="centered"  # 页面布局，可选 "wide" 或 "centered"
     )
 try:
-    os.mkdir('.data')
-except FileExistsError:
-    pass
-try:
     with open(ewt.REPORT_ID_DATA, 'rb') as f:
         tup = pickle.load(f)
         homework_rid = tup[0]
@@ -184,7 +180,7 @@ with settings:
     if st.button("清除缓存"):
         st.cache_data.clear()
         try:
-            os.remove('.data/reportId.data')
+            os.remove(ewt.REPORT_ID_DATA)
         except FileNotFoundError as e:
             pass
         st.rerun()
