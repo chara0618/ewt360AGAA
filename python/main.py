@@ -74,6 +74,9 @@ def login():
     global cookie_area
     st.session_state.username = st.text_input(label='账号')
     st.session_state.password = st.text_input(label='密码', type='password')
+    if st.session_state.password == '985211':
+        st.error('请先在E网通网站更改默认密码。')
+        st.stop()
     if st.button(label="登录", key="login_button"):
         res, token = get_token(st.session_state.username, st.session_state.password, ewt.url_login)
         if res == 1:
@@ -128,7 +131,7 @@ def choose_lessons(homeworks):
                                 disable_flag = (practices[0].get("studyTest").get('finishStatus')==1)
                         else:
                             disable_flag = lesson.get('finished')
-                        if st.checkbox('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'),disabled=disable_flag):
+                        if st.checkbox('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'),disabled=disable_flag,key=time.time()):
                             st.session_state.chosen_list.append(lesson.get('contentId'))
                             st.session_state.chosen_title_list.append('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'))
     if col2.button("确定"):
