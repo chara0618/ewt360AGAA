@@ -131,7 +131,7 @@ def choose_lessons(homeworks):
                                 disable_flag = (practices[0].get("studyTest").get('finishStatus')==1)
                         else:
                             disable_flag = lesson.get('finished')
-                        if st.checkbox('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'),disabled=disable_flag,key=time.time()):
+                        if st.checkbox('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'),disabled=disable_flag,key=f"checkbox_{lesson.get('contentId')}"):
                             st.session_state.chosen_list.append(lesson.get('contentId'))
                             st.session_state.chosen_title_list.append('**'+lesson.get('subjectName')+' '+lesson.get('contentTypeName')+'** '+lesson.get('title'))
     if col2.button("确定"):
