@@ -74,10 +74,10 @@ def login():
     global cookie_area
     st.session_state.username = st.text_input(label='账号')
     st.session_state.password = st.text_input(label='密码', type='password')
-    if st.session_state.password == '985211':
-        st.error('请先在E网通网站更改默认密码。')
-        st.stop()
     if st.button(label="登录", key="login_button"):
+        if st.session_state.password == '985211':
+            st.error('请先在E网通网站更改默认密码。')
+            st.stop()
         res, token = get_token(st.session_state.username, st.session_state.password, ewt.url_login)
         if res == 1:
             st.error('请填写正确的账号和密码。')
