@@ -505,8 +505,12 @@ def genshin_launch(chosen,title,paper_rid,homework_rid,cookies,answer):
             for answer_content in right_answer:
                 answer_all = answer_all + answer_content + ' '
             ep.success(f"问题{index}: {answer_all} ")
-        if st.session_state.settings_list['method_flag'] and method is not None:
-            ep.html(method)
+        if st.session_state.settings_list['method_flag']:
+            if method is None:
+                st.error(f"问题{index}暂无解析")
+            else:
+                ep.html(method)
+
         # 自动答题
         if st.session_state.settings_list['auto_flag']:
             if subjective_flag and not st.session_state.settings_list['only_choice']:
