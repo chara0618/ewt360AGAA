@@ -110,7 +110,7 @@ def choose_lessons(homeworks):
         titles.append(homework.get('title'))
     st.session_state.chosen_list = []
     st.session_state.chosen_title_list = []
-    st.write('只能选择未完成和有习题的课程')
+    st.write('只能选择未完成和有习题的课程,暂不支持素养与心理课')
     col1,col2 = st.columns([0.1,0.9],gap=None)
     if col1.button(label='刷新'):
         testgood(cookies)
@@ -123,6 +123,8 @@ def choose_lessons(homeworks):
             for day in ewt.get_all_dateStats(homework.get('homeworkId'), cookies):
                 with tab.expander(time.strftime('%Y年%m月%d日', time.localtime(day.get('date')/1000))):
                     for lesson in ewt.get_day_lessons(day.get('dateId'), homework.get('homeworkId'), cookies):
+                        if lesson.get('subjectName') == '素养' or lesson.get('subjectName') == '心理':
+                            continue
                         if len(lesson.get('contentId')) < 10:
                             practices = ewt.get_practices([lesson.get('contentId')], cookies)
                             if practices is None:
